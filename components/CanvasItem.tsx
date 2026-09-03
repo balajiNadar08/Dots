@@ -112,25 +112,31 @@ export default function CanvasItem({
     height: itemHeight.value,
   }));
 
+  const editGesture = Gesture.Tap().onEnd(() => {
+    scheduleOnRN(onEdit, id);
+  });
+
+  const deleteGesture = Gesture.Tap().onEnd(() => {
+    scheduleOnRN(onDelete, id);
+  });
+
   const cardGesture = Gesture.Exclusive(panGesture, tapGesture);
   return (
     <GestureDetector gesture={cardGesture}>
-      <Animated.View className="absolute" style={itemAnimatedStyle}>
+      <Animated.View className="absolute border border-blue-400 p-4" style={itemAnimatedStyle}>
         {isSelected && (
           <View className="absolute -top-12 right-0 z-10 flex-row gap-2">
-            <Pressable
-              onPress={() => onEdit(id)}
-              className="h-9 w-9 items-center justify-center rounded-full border border-blue-400 bg-white"
-            >
-              <Feather name="edit-2" size={17} color="#2563EB" />
-            </Pressable>
+            <GestureDetector gesture={editGesture}>
+              <View className="h-9 w-9 items-center justify-center rounded-full border border-blue-400 bg-white">
+                <Feather name="edit-2" size={17} color="#2563EB" />
+              </View>
+            </GestureDetector>
 
-            <Pressable
-              onPress={() => onDelete(id)}
-              className="h-9 w-9 items-center justify-center rounded-full border border-red-400 bg-white"
-            >
-              <Feather name="trash-2" size={17} color="#EF4444" />
-            </Pressable>
+            <GestureDetector gesture={deleteGesture}>
+              <View className="h-9 w-9 items-center justify-center rounded-full border border-red-400 bg-white">
+                <Feather name="trash-2" size={17} color="#EF4444" />
+              </View>
+            </GestureDetector>
           </View>
         )}
 
