@@ -9,7 +9,9 @@ import {
   Modal,
   KeyboardAvoidingView,
   Platform,
+  Image,
 } from "react-native";
+
 import * as ImagePicker from "expo-image-picker";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -18,16 +20,18 @@ import { scheduleOnRN } from "react-native-worklets";
 
 import CanvasItem from "../components/CanvasItem";
 import { CanvasItemData } from "../types/canvas";
-import DottedBackground from "../components/DottedBackground";
+// import DottedBackground from "../components/DottedBackground";
 import "./global.css";
 
-const DOT_SIZE = 2;
-const HORIZONTAL_GAP = 30;
-const VERTICAL_GAP = 30;
+// const DOT_SIZE = 2;
+// const HORIZONTAL_GAP = 30;
+// const VERTICAL_GAP = 30;
 
 const STORAGE_KEY = "@dots_canvas_items";
 
 export default function Home() {
+  const [showWelcome, setShowWelcome] = useState(true);
+
   const [canvasItems, setCanvasItems] = useState<CanvasItemData[]>([]);
 
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
@@ -38,8 +42,16 @@ export default function Home() {
 
   const [isLoaded, setIsLoaded] = useState(false);
 
-  const rows = Array.from({ length: 170 });
-  const columns = Array.from({ length: 170 });
+  // const rows = Array.from({ length: 170 });
+  // const columns = Array.from({ length: 170 });
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowWelcome(false);
+    }, 3000);
+
+    return () => clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     loadCanvas();
@@ -174,19 +186,16 @@ export default function Home() {
       id: Date.now().toString(),
       title: "New Note",
       imageUri,
-      x: 80 + offset,
-      y: 150 + offset,
+      x: 2200 + offset,
+      y: 2200 + offset,
       width: 160,
       height: 160,
     };
 
     setCanvasItems((items) => [...items, newItem]);
-
     setSelectedItemId(newItem.id);
-
     setEditingItemId(newItem.id);
-
-    setEditedTitle("New Note");
+    setEditedTitle("");
   };
 
   const handlePickImage = async () => {
@@ -249,28 +258,51 @@ export default function Home() {
     }
   };
 
-  const handleClearCanvas = () => {
-    Alert.alert("Clear Canvas", "Are you sure you want to delete everything?", [
-      {
-        text: "Cancel",
-        style: "cancel",
-      },
-      {
-        text: "Clear Everything",
-        style: "destructive",
-        onPress: async () => {
-          try {
-            setCanvasItems([]);
-            setSelectedItemId(null);
+  // const handleClearCanvas = () => {
+  //   Alert.alert("Clear Canvas", "Are you sure you want to delete everything?", [
+  //     {
+  //       text: "Cancel",
+  //       style: "cancel",
+  //     },
+  //     {
+  //       text: "Clear Everything",
+  //       style: "destructive",
+  //       onPress: async () => {
+  //         try {
+  //           setCanvasItems([]);
+  //           setSelectedItemId(null);
 
-            await AsyncStorage.removeItem(STORAGE_KEY);
-          } catch (error) {
-            console.log("Error clearing canvas:", error);
-          }
-        },
-      },
-    ]);
-  };
+  //           await AsyncStorage.removeItem(STORAGE_KEY);
+  //         } catch (error) {
+  //           console.log("Error clearing canvas:", error);
+  //         }
+  //       },
+  //     },
+  //   ]);
+  // };
+
+  if (showWelcome) {
+    return (
+      <SafeAreaView className="flex-1 bg-[#F7F7F5]">
+        <View className="flex-1 items-center justify-center">
+          <Image
+            source={require("../assets/images/icon.png")}
+            className="h-64 w-64"
+            resizeMode="contain"
+          />
+          <View className="mt-6 items-center">
+            <Text className="text-xl text-black">
+              Add images, write notes &{" "}
+            </Text>
+            <Text className="text-xl text-black">
+              {" "}
+              Keep connecting the Dots...
+            </Text>
+          </View>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView className="flex-1 bg-[#F7F7F5]">
@@ -281,10 +313,8 @@ export default function Home() {
               width: 5000,
               height: 5000,
             }}
-            className="relative bg-[#F7F7F5]"
+            className="relative bg-transparent"
           >
-            <DottedBackground width={5000} height={5000} />
-
             {canvasItems.map((item) => (
               <CanvasItem
                 key={item.id}
