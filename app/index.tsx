@@ -12,6 +12,7 @@ import {
   Image,
 } from "react-native";
 
+import { File, Paths } from "expo-file-system";
 import * as ImagePicker from "expo-image-picker";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -20,12 +21,7 @@ import { scheduleOnRN } from "react-native-worklets";
 
 import CanvasItem from "../components/CanvasItem";
 import { CanvasItemData } from "../types/canvas";
-// import DottedBackground from "../components/DottedBackground";
 import "./global.css";
-
-// const DOT_SIZE = 2;
-// const HORIZONTAL_GAP = 30;
-// const VERTICAL_GAP = 30;
 
 const STORAGE_KEY = "@dots_canvas_items";
 
@@ -41,9 +37,6 @@ export default function Home() {
   const [editedTitle, setEditedTitle] = useState("");
 
   const [isLoaded, setIsLoaded] = useState(false);
-
-  // const rows = Array.from({ length: 170 });
-  // const columns = Array.from({ length: 170 });
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -108,9 +101,23 @@ export default function Home() {
           text: "Delete",
           style: "destructive",
           onPress: () => {
-            setCanvasItems((items) => items.filter((item) => item.id !== id));
+            try {
+              const itemToDelete = canvasItems.find((item) => item.id === id);
 
-            setSelectedItemId(null);
+              if (itemToDelete?.imageUri) {
+                const file = new File(itemToDelete.imageUri);
+
+                if (file.exists) {
+                  file.delete();
+                }
+              }
+
+              setCanvasItems((items) => items.filter((item) => item.id !== id));
+
+              setSelectedItemId(null);
+            } catch (error) {
+              console.log("Error deleting image:", error);
+            }
           },
         },
       ],
@@ -179,23 +186,36 @@ export default function Home() {
     setEditedTitle("");
   };
 
-  const addImageToCanvas = (imageUri: string) => {
-    const offset = canvasItems.length * 20;
+  const addImageToCanvas = async (imageUri: string) => {
+    try {
+      const offset = canvasItems.length * 20;
 
-    const newItem: CanvasItemData = {
-      id: Date.now().toString(),
-      title: "New Note",
-      imageUri,
-      x: 2200 + offset,
-      y: 2200 + offset,
-      width: 160,
-      height: 160,
-    };
+      const filename = `canvas-image-${Date.now()}.jpg`;
 
-    setCanvasItems((items) => [...items, newItem]);
-    setSelectedItemId(newItem.id);
-    setEditingItemId(newItem.id);
-    setEditedTitle("");
+      const sourceFile = new File(imageUri);
+
+      const destinationFile = new File(Paths.document, filename);
+
+      sourceFile.copy(destinationFile);
+
+      const newItem: CanvasItemData = {
+        id: Date.now().toString(),
+        title: "New Note",
+        imageUri: destinationFile.uri,
+        x: 2200 + offset,
+        y: 2200 + offset,
+        width: 160,
+        height: 160,
+      };
+
+      setCanvasItems((items) => [...items, newItem]);
+      setSelectedItemId(newItem.id);
+      setEditingItemId(newItem.id);
+      setEditedTitle("");
+    } catch (error) {
+      console.log("Error copying image:", error);
+      Alert.alert("Error", "Unable to save image.");
+    }
   };
 
   const handlePickImage = async () => {
