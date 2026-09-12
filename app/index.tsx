@@ -61,12 +61,19 @@ export default function Home() {
       const savedCanvas = await AsyncStorage.getItem(STORAGE_KEY);
 
       if (savedCanvas) {
-        const parsedItems: CanvasItemData[] = JSON.parse(savedCanvas);
+        const parsedItems = JSON.parse(savedCanvas);
 
-        setCanvasItems(parsedItems);
+        if (Array.isArray(parsedItems)) {
+          setCanvasItems(parsedItems);
+        } else {
+          console.log("Invalid canvas data in storage:", parsedItems);
+          setCanvasItems([]);
+          await AsyncStorage.removeItem(STORAGE_KEY);
+        }
       }
     } catch (error) {
       console.log("Error loading canvas:", error);
+      setCanvasItems([]);
     } finally {
       setIsLoaded(true);
     }
@@ -335,7 +342,7 @@ export default function Home() {
             }}
             className="relative bg-transparent"
           >
-            {canvasItems.map((item) => (
+            {(Array.isArray(canvasItems) ? canvasItems : []).map((item) => (
               <CanvasItem
                 key={item.id}
                 {...item}
