@@ -1,4 +1,4 @@
-import { Image, Text, View, Pressable } from "react-native";
+import { Image, Text, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
   useAnimatedStyle,
@@ -55,19 +55,16 @@ export default function CanvasItem({
   const startHeight = useSharedValue(height);
 
   const panGesture = Gesture.Pan()
-
     .onStart(() => {
       startX.value = translateX.value;
       startY.value = translateY.value;
 
       scheduleOnRN(onSelect, id);
     })
-
     .onUpdate((event) => {
       translateX.value = startX.value + event.translationX;
       translateY.value = startY.value + event.translationY;
     })
-
     .onEnd(() => {
       scheduleOnRN(onPositionChange, id, translateX.value, translateY.value);
     });
@@ -77,23 +74,28 @@ export default function CanvasItem({
   });
 
   const resizeGesture = Gesture.Pan()
-
     .onStart(() => {
       startWidth.value = itemWidth.value;
       startHeight.value = itemHeight.value;
     })
-
     .onUpdate((event) => {
       const newWidth = startWidth.value + event.translationX;
       const newHeight = startHeight.value + event.translationY;
 
-      itemWidth.value = Math.max(100, newWidth);
-      itemHeight.value = Math.max(100, newHeight);
+      itemWidth.value = Math.max(120, newWidth);
+      itemHeight.value = Math.max(120, newHeight);
     })
-
     .onEnd(() => {
       scheduleOnRN(onSizeChange, id, itemWidth.value, itemHeight.value);
     });
+
+  const editGesture = Gesture.Tap().onEnd(() => {
+    scheduleOnRN(onEdit, id);
+  });
+
+  const deleteGesture = Gesture.Tap().onEnd(() => {
+    scheduleOnRN(onDelete, id);
+  });
 
   const itemAnimatedStyle = useAnimatedStyle(() => ({
     transform: [
@@ -108,43 +110,40 @@ export default function CanvasItem({
 
   const sizeAnimatedStyle = useAnimatedStyle(() => ({
     width: itemWidth.value,
-
     height: itemHeight.value,
   }));
 
-  const editGesture = Gesture.Tap().onEnd(() => {
-    scheduleOnRN(onEdit, id);
-  });
-
-  const deleteGesture = Gesture.Tap().onEnd(() => {
-    scheduleOnRN(onDelete, id);
-  });
-
   const cardGesture = Gesture.Exclusive(panGesture, tapGesture);
+
   return (
     <GestureDetector gesture={cardGesture}>
-      <Animated.View className="absolute border border-blue-400 p-4" style={itemAnimatedStyle}>
+      <Animated.View
+        style={itemAnimatedStyle}
+        className={`absolute overflow-visible ${
+          isSelected
+            ? "border-2 border-blue-500 bg-white"
+            : "border border-gray-200 bg-white"
+        }`}
+      >
         {isSelected && (
-          <View className="absolute -top-12 right-0 z-10 flex-row gap-2">
+          <View className="absolute -top-12 right-0 z-50 flex-row items-center gap-2">
             <GestureDetector gesture={editGesture}>
-              <View className="h-9 w-9 items-center justify-center rounded-full border border-blue-400 bg-white">
-                <Feather name="edit-2" size={17} color="#2563EB" />
+              <View className="h-9 w-9 items-center justify-center rounded-full border border-gray-200 bg-white shadow-sm">
+                <Feather name="edit-2" size={16} color="#374151" />
               </View>
             </GestureDetector>
 
             <GestureDetector gesture={deleteGesture}>
-              <View className="h-9 w-9 items-center justify-center rounded-full border border-red-400 bg-white">
-                <Feather name="trash-2" size={17} color="#EF4444" />
+              <View className="h-9 w-9 items-center justify-center rounded-full border border-red-200 bg-white shadow-sm">
+                <Feather name="trash-2" size={16} color="#EF4444" />
               </View>
             </GestureDetector>
           </View>
         )}
 
         <Animated.View
-          className={`overflow-hidden bg-white ${
-            isSelected ? "border-2 border-blue-500" : "border border-blue-300"
-          }`}
           style={sizeAnimatedStyle}
+          className="overflow-hidden bg-gray-100"
         >
           <Image
             source={{
@@ -155,9 +154,14 @@ export default function CanvasItem({
           />
         </Animated.View>
 
-        <Text className="mt-2 max-w-[250px] text-base font-medium text-black">
-          {title}
-        </Text>
+        <View className="rounded-b-2xl bg-white px-4 py-3">
+          <Text
+            numberOfLines={3}
+            className="text-[15px] font-medium leading-5 text-gray-900"
+          >
+            {title || "Untitled"}
+          </Text>
+        </View>
 
         {isSelected && (
           <GestureDetector gesture={resizeGesture}>
