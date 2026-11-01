@@ -1,6 +1,5 @@
 import { ReactNode } from "react";
-import { View, Pressable, Text } from "react-native";
-import { ImageBackground } from "react-native";
+import { View, Pressable, Text, ImageSourcePropType } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 
 import Animated, {
@@ -9,11 +8,17 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 
+import CanvasBackground from "./CanvasBackground";
+
 interface InfiniteCanvasProps {
   children: ReactNode;
+  background: ImageSourcePropType;
 }
 
-export default function InfiniteCanvas({ children }: InfiniteCanvasProps) {
+export default function InfiniteCanvas({
+  children,
+  background,
+}: InfiniteCanvasProps) {
   const translateX = useSharedValue(0);
   const translateY = useSharedValue(0);
 
@@ -78,11 +83,7 @@ export default function InfiniteCanvas({ children }: InfiniteCanvasProps) {
 
   return (
     <View className="flex-1 overflow-hidden">
-      <ImageBackground
-        source={require("../assets/images/dot_bg_2.jpg")}
-        className="absolute inset-0 h-full w-full"
-        resizeMode="cover"
-      />
+      <CanvasBackground source={background} />
       <GestureDetector gesture={gesture}>
         <Animated.View
           className="absolute"
