@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Image, Text, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
@@ -6,6 +7,8 @@ import Animated, {
 } from "react-native-reanimated";
 import { scheduleOnRN } from "react-native-worklets";
 import { Feather } from "@expo/vector-icons";
+
+import type { ItemLayout } from "../types/canvas";
 
 interface CanvasItemProps {
   id: string;
@@ -19,12 +22,19 @@ interface CanvasItemProps {
   height: number;
 
   isSelected: boolean;
+  isConnecting: boolean;
+  isConnectSource: boolean;
 
   onSelect: (id: string) => void;
   onDelete: (id: string) => void;
   onEdit: (id: string) => void;
+  onConnectStart: (id: string) => void;
+  onConnectTarget: (id: string) => void;
   onPositionChange: (id: string, x: number, y: number) => void;
   onSizeChange: (id: string, width: number, height: number) => void;
+
+  registerLayout: (id: string, layout: ItemLayout) => void;
+  unregisterLayout: (id: string) => void;
 }
 
 export default function CanvasItem({
@@ -36,11 +46,17 @@ export default function CanvasItem({
   width,
   height,
   isSelected,
+  isConnecting,
+  isConnectSource,
   onSelect,
   onDelete,
   onEdit,
+  onConnectStart,
+  onConnectTarget,
   onPositionChange,
   onSizeChange,
+  registerLayout,
+  unregisterLayout,
 }: CanvasItemProps) {
   const translateX = useSharedValue(x);
   const translateY = useSharedValue(y);
@@ -54,12 +70,27 @@ export default function CanvasItem({
   const startWidth = useSharedValue(width);
   const startHeight = useSharedValue(height);
 
+  // Expose the live shared values so connection lines follow this card on the UI thread.
+  useEffect(() => {
+    registerLayout(id, {
+      x: translateX,
+      y: translateY,
+      width: itemWidth,
+      height: itemHeight,
+    });
+    return () => unregisterLayout(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
+
   const panGesture = Gesture.Pan()
     .onStart(() => {
       startX.value = translateX.value;
       startY.value = translateY.value;
 
-      scheduleOnRN(onSelect, id);
+      // Dragging must not pick a connection target; only a tap does.
+      if (!isConnecting) {
+        scheduleOnRN(onSelect, id);
+      }
     })
     .onUpdate((event) => {
       translateX.value = startX.value + event.translationX;
@@ -70,7 +101,11 @@ export default function CanvasItem({
     });
 
   const tapGesture = Gesture.Tap().onEnd(() => {
-    scheduleOnRN(onSelect, id);
+    if (isConnecting) {
+      scheduleOnRN(onConnectTarget, id);
+    } else {
+      scheduleOnRN(onSelect, id);
+    }
   });
 
   const resizeGesture = Gesture.Pan()
@@ -91,6 +126,10 @@ export default function CanvasItem({
 
   const editGesture = Gesture.Tap().onEnd(() => {
     scheduleOnRN(onEdit, id);
+  });
+
+  const connectGesture = Gesture.Tap().onEnd(() => {
+    scheduleOnRN(onConnectStart, id);
   });
 
   const deleteGesture = Gesture.Tap().onEnd(() => {
@@ -115,18 +154,28 @@ export default function CanvasItem({
 
   const cardGesture = Gesture.Exclusive(panGesture, tapGesture);
 
+  const showControls = isSelected && !isConnecting;
+
+  const borderClass = isConnectSource
+    ? "border-2 border-red-500 bg-white"
+    : isSelected
+      ? "border-2 border-blue-500 bg-white"
+      : "border border-gray-200 bg-white";
+
   return (
     <GestureDetector gesture={cardGesture}>
       <Animated.View
         style={itemAnimatedStyle}
-        className={`absolute overflow-visible ${
-          isSelected
-            ? "border-2 border-blue-500 bg-white"
-            : "border border-gray-200 bg-white"
-        }`}
+        className={`absolute overflow-visible ${borderClass}`}
       >
-        {isSelected && (
+        {showControls && (
           <View className="absolute -top-12 right-0 z-50 flex-row items-center gap-2">
+            <GestureDetector gesture={connectGesture}>
+              <View className="h-9 w-9 items-center justify-center rounded-full border border-red-200 bg-white shadow-sm">
+                <Feather name="share-2" size={16} color="#D64545" />
+              </View>
+            </GestureDetector>
+
             <GestureDetector gesture={editGesture}>
               <View className="h-9 w-9 items-center justify-center rounded-full border border-gray-200 bg-white shadow-sm">
                 <Feather name="edit-2" size={16} color="#374151" />
@@ -163,7 +212,7 @@ export default function CanvasItem({
           </Text>
         </View>
 
-        {isSelected && (
+        {showControls && (
           <GestureDetector gesture={resizeGesture}>
             <Animated.View className="absolute -bottom-2 -right-2 z-20 h-8 w-8 items-center justify-center rounded-full border-2 border-blue-500 bg-white">
               <Feather name="maximize-2" size={15} color="#2563EB" />
