@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import InfiniteCanvas from "../components/InfiniteCanvas";
 import {
   View,
@@ -18,17 +18,47 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import { scheduleOnRN } from "react-native-worklets";
+import { useRouter, useFocusEffect } from "expo-router";
+import { Feather } from "@expo/vector-icons";
 
 import CanvasItem from "../components/CanvasItem";
-import { CanvasItemData } from "../types/canvas";
+import {
+  ConnectionLinesLayer,
+  ConnectionBadgesLayer,
+} from "../components/ConnectionLayer";
+import {
+  DEFAULT_BACKGROUND_ID,
+  getBackgroundSource,
+} from "../constants/backgrounds";
+import {
+  loadBackgroundId,
+  loadConnections,
+  saveConnections,
+} from "../lib/storage";
+import {
+  BackgroundId,
+  CanvasItemData,
+  Connection,
+  ItemLayout,
+} from "../types/canvas";
 import "./global.css";
 
 const STORAGE_KEY = "@dots_canvas_items";
 
 export default function Home() {
+  const router = useRouter();
+
   const [showWelcome, setShowWelcome] = useState(true);
 
   const [canvasItems, setCanvasItems] = useState<CanvasItemData[]>([]);
+
+  const [connections, setConnections] = useState<Connection[]>([]);
+
+  const [connectingFromId, setConnectingFromId] = useState<string | null>(null);
+
+  const [backgroundId, setBackgroundId] = useState<BackgroundId>(
+    DEFAULT_BACKGROUND_ID,
+  );
 
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
 
@@ -37,6 +67,21 @@ export default function Home() {
   const [editedTitle, setEditedTitle] = useState("");
 
   const [isLoaded, setIsLoaded] = useState(false);
+
+  // Live card geometry (shared values) used by the connection layer.
+  const layoutRegistry = useRef(new Map<string, ItemLayout>());
+  const [layoutVersion, setLayoutVersion] = useState(0);
+
+  const registerLayout = useCallback((id: string, layout: ItemLayout) => {
+    layoutRegistry.current.set(id, layout);
+    setLayoutVersion((v) => v + 1);
+  }, []);
+
+  const unregisterLayout = useCallback((id: string) => {
+    if (layoutRegistry.current.delete(id)) {
+      setLayoutVersion((v) => v + 1);
+    }
+  }, []);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -50,11 +95,31 @@ export default function Home() {
     loadCanvas();
   }, []);
 
+  // Re-read the background whenever we come back from Settings.
+  // The canvas itself stays mounted, so nothing resets.
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+      loadBackgroundId().then((id) => {
+        if (active) setBackgroundId(id);
+      });
+      return () => {
+        active = false;
+      };
+    }, []),
+  );
+
   useEffect(() => {
     if (!isLoaded) return;
 
     saveCanvas();
   }, [canvasItems, isLoaded]);
+
+  useEffect(() => {
+    if (!isLoaded) return;
+
+    saveConnections(connections);
+  }, [connections, isLoaded]);
 
   const loadCanvas = async () => {
     try {
@@ -65,6 +130,12 @@ export default function Home() {
 
         if (Array.isArray(parsedItems)) {
           setCanvasItems(parsedItems);
+
+          // Older (V2) installs have no connections key -> [].
+          const validIds = new Set<string>(
+            parsedItems.map((item: CanvasItemData) => item.id),
+          );
+          setConnections(await loadConnections(validIds));
         } else {
           console.log("Invalid canvas data in storage:", parsedItems);
           setCanvasItems([]);
@@ -91,9 +162,59 @@ export default function Home() {
     setSelectedItemId(id);
   };
 
+  /* ---------------------------- Connections --------------------------- */
+
+  const handleConnectStart = (id: string) => {
+    setSelectedItemId(id);
+    setConnectingFromId(id);
+  };
+
+  const handleCancelConnect = () => {
+    setConnectingFromId(null);
+  };
+
+  const handleConnectTarget = (id: string) => {
+    const fromId = connectingFromId;
+
+    if (!fromId || fromId === id) return;
+
+    setConnections((prev) => {
+      const exists = prev.some(
+        (c) =>
+          (c.fromId === fromId && c.toId === id) ||
+          (c.fromId === id && c.toId === fromId),
+      );
+
+      if (exists) return prev;
+
+      return [
+        ...prev,
+        {
+          id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+          fromId,
+          toId: id,
+        },
+      ];
+    });
+
+    setConnectingFromId(null);
+    setSelectedItemId(id);
+  };
+
+  const handleRemoveConnection = (connectionId: string) => {
+    setConnections((prev) => prev.filter((c) => c.id !== connectionId));
+  };
+
+  const handleCanvasTap = () => {
+    setSelectedItemId(null);
+    setConnectingFromId(null);
+  };
+
   const deselectGesture = Gesture.Tap().onEnd(() => {
-    scheduleOnRN(setSelectedItemId, null);
+    scheduleOnRN(handleCanvasTap);
   });
+
+  /* ------------------------------- Items ------------------------------ */
 
   const handleDeleteItem = (id: string) => {
     Alert.alert(
@@ -120,6 +241,15 @@ export default function Home() {
               }
 
               setCanvasItems((items) => items.filter((item) => item.id !== id));
+
+              // Remove every connection attached to the deleted image.
+              setConnections((prev) =>
+                prev.filter((c) => c.fromId !== id && c.toId !== id),
+              );
+
+              setConnectingFromId((current) =>
+                current === id ? null : current,
+              );
 
               setSelectedItemId(null);
             } catch (error) {
@@ -285,29 +415,6 @@ export default function Home() {
     }
   };
 
-  // const handleClearCanvas = () => {
-  //   Alert.alert("Clear Canvas", "Are you sure you want to delete everything?", [
-  //     {
-  //       text: "Cancel",
-  //       style: "cancel",
-  //     },
-  //     {
-  //       text: "Clear Everything",
-  //       style: "destructive",
-  //       onPress: async () => {
-  //         try {
-  //           setCanvasItems([]);
-  //           setSelectedItemId(null);
-
-  //           await AsyncStorage.removeItem(STORAGE_KEY);
-  //         } catch (error) {
-  //           console.log("Error clearing canvas:", error);
-  //         }
-  //       },
-  //     },
-  //   ]);
-  // };
-
   if (showWelcome) {
     return (
       <SafeAreaView className="flex-1 bg-[#F7F7F5]">
@@ -331,9 +438,11 @@ export default function Home() {
     );
   }
 
+  const isConnecting = connectingFromId !== null;
+
   return (
     <SafeAreaView className="flex-1 bg-[#F7F7F5]">
-      <InfiniteCanvas>
+      <InfiniteCanvas background={getBackgroundSource(backgroundId)}>
         <GestureDetector gesture={deselectGesture}>
           <View
             style={{
@@ -342,30 +451,65 @@ export default function Home() {
             }}
             className="relative bg-transparent"
           >
+            {/* 1. Connection lines: behind the cards */}
+            <ConnectionLinesLayer
+              connections={connections}
+              layouts={layoutRegistry.current}
+              version={layoutVersion}
+            />
+
+            {/* 2. Cards */}
             {(Array.isArray(canvasItems) ? canvasItems : []).map((item) => (
               <CanvasItem
                 key={item.id}
                 {...item}
                 isSelected={selectedItemId === item.id}
+                isConnecting={isConnecting}
+                isConnectSource={connectingFromId === item.id}
                 onSelect={handleSelectItem}
                 onDelete={handleDeleteItem}
                 onEdit={handleEditItem}
+                onConnectStart={handleConnectStart}
+                onConnectTarget={handleConnectTarget}
                 onPositionChange={handlePositionChange}
                 onSizeChange={handleSizeChange}
+                registerLayout={registerLayout}
+                unregisterLayout={unregisterLayout}
               />
             ))}
+
+            {/* 3. Remove badges for the selected card's connections */}
+            <ConnectionBadgesLayer
+              connections={connections}
+              layouts={layoutRegistry.current}
+              version={layoutVersion}
+              selectedItemId={isConnecting ? null : selectedItemId}
+              onRemove={handleRemoveConnection}
+            />
           </View>
         </GestureDetector>
       </InfiniteCanvas>
 
-      {/* {canvasItems.length > 0 && (
-        <Pressable
-          onPress={handleClearCanvas}
-          className="absolute bottom-8 left-6 rounded-full border border-red-300 bg-white px-5 py-3"
-        >
-          <Text className="font-medium text-red-500">Clear</Text>
-        </Pressable>
-      )} */}
+      {isConnecting ? (
+        <View className="absolute left-6 right-20 top-4 flex-row items-center rounded-full border border-red-200 bg-white px-4 py-2">
+          <Text className="flex-1 text-sm text-gray-800">
+            Tap another image to connect
+          </Text>
+          <Pressable
+            onPress={handleCancelConnect}
+            className="ml-3 rounded-full bg-gray-100 px-3 py-1.5"
+          >
+            <Text className="text-sm font-medium text-gray-700">Cancel</Text>
+          </Pressable>
+        </View>
+      ) : null}
+
+      <Pressable
+        onPress={() => router.push("/settings" as any)}
+        className="absolute right-6 top-4 h-11 w-11 items-center justify-center rounded-full border border-gray-300 bg-white"
+      >
+        <Feather name="settings" size={20} color="#374151" />
+      </Pressable>
 
       <Pressable
         onPress={() => {
