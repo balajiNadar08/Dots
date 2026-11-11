@@ -449,7 +449,10 @@ export default function Home() {
 
   return (
     <SafeAreaView className="flex-1 bg-[#F7F7F5]">
-      <InfiniteCanvas background={getBackgroundSource(backgroundId)}>
+      <InfiniteCanvas
+        background={getBackgroundSource(backgroundId)}
+        backgroundId={backgroundId}
+      >
         <GestureDetector gesture={deselectGesture}>
           <View
             style={{
@@ -528,25 +531,31 @@ export default function Home() {
 
       <Pressable
         onPress={() => {
-          Alert.alert("Add Image", "Choose how you want to add an image", [
-            {
-              text: "Take Photo",
-              onPress: handleTakePhoto,
-            },
-            {
-              text: "Choose from Gallery",
-              onPress: handlePickImage,
-            },
-            {
-              text: "Cancel",
-              style: "cancel",
-            },
-          ]);
+          Alert.alert(
+            "Add Image to canvas",
+            "Choose how you want to add an image",
+            [
+              {
+                text: "Take Photo",
+                onPress: handleTakePhoto,
+              },
+              {
+                text: "Choose from Gallery",
+                onPress: handlePickImage,
+              },
+              {
+                text: "Cancel",
+                style: "cancel",
+              },
+            ],
+          );
         }}
         style={{ bottom: insets.bottom + 32, right: insets.right + 24 }}
-        className="absolute h-16 w-16 items-center justify-center rounded-full border border-blue-300 bg-white"
+        className="absolute items-center justify-center rounded-xl border border-blue-300 bg-white"
       >
-        <Text className="text-4xl font-light text-blue-600">+</Text>
+        <Text className="text-xl px-2 py-1 font-extralight text-blue-600">
+          + add pic
+        </Text>
       </Pressable>
 
       <Modal
