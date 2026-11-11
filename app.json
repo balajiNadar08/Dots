@@ -34,7 +34,11 @@
           "backgroundColor": "#000000",
           "imageWidth": 200
         }
-      ]
+      ],
+      "expo-font",
+      "expo-image",
+      "expo-status-bar",
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true,
