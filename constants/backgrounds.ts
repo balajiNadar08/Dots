@@ -9,22 +9,27 @@ export interface BackgroundOption {
 
 export const DEFAULT_BACKGROUND_ID: BackgroundId = "white";
 
-// Static require() calls: Metro bundles these as ordinary assets.
 export const BACKGROUNDS: BackgroundOption[] = [
   {
     id: "white",
     label: "White dotted grid",
-    source: require("../assets/images/dot_bg_2.jpg"), // existing file (V2 background)
+    source: require("../assets/images/dot_bg_2.jpg"),
+  },
+  {
+    id: "pink",
+    label: "Pink dotted grid",
+    source: require("../assets/images/dot_bg_pink.jpg"),
   },
   {
     id: "grey",
     label: "Grey dotted grid",
-    source: require("../assets/images/dot_bg_grey.jpg"), // <-- ADD YOUR FILE (or edit this path)
+    source: require("../assets/images/dot_bg_grey.jpg"),
   },
+
   {
     id: "yellow",
     label: "Yellow dotted grid",
-    source: require("../assets/images/dot_bg_yellow.jpg"), // <-- ADD YOUR FILE (or edit this path)
+    source: require("../assets/images/dot_bg_yellow.jpg"),
   },
 ];
 
