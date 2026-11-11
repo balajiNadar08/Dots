@@ -15,7 +15,10 @@ import {
 import { File, Paths } from "expo-file-system";
 import * as ImagePicker from "expo-image-picker";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { SafeAreaView } from "react-native-safe-area-context";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import { scheduleOnRN } from "react-native-worklets";
 import { useRouter, useFocusEffect } from "expo-router";
@@ -47,6 +50,10 @@ const STORAGE_KEY = "@dots_canvas_items";
 
 export default function Home() {
   const router = useRouter();
+
+  // Absolutely positioned children ignore SafeAreaView's padding, so the
+  // floating buttons add the real device insets themselves.
+  const insets = useSafeAreaInsets();
 
   const [showWelcome, setShowWelcome] = useState(true);
 
@@ -491,7 +498,14 @@ export default function Home() {
       </InfiniteCanvas>
 
       {isConnecting ? (
-        <View className="absolute left-6 right-20 top-4 flex-row items-center rounded-full border border-red-200 bg-white px-4 py-2">
+        <View
+          style={{
+            top: insets.top + 16,
+            left: insets.left + 24,
+            right: insets.right + 80,
+          }}
+          className="absolute flex-row items-center rounded-full border border-red-200 bg-white px-4 py-2"
+        >
           <Text className="flex-1 text-sm text-gray-800">
             Tap another image to connect
           </Text>
@@ -506,7 +520,8 @@ export default function Home() {
 
       <Pressable
         onPress={() => router.push("/settings" as any)}
-        className="absolute right-6 top-4 h-11 w-11 items-center justify-center rounded-full border border-gray-300 bg-white"
+        style={{ top: insets.top + 16, right: insets.right + 24 }}
+        className="absolute h-11 w-11 items-center justify-center rounded-full border border-gray-300 bg-white"
       >
         <Feather name="settings" size={20} color="#374151" />
       </Pressable>
@@ -528,7 +543,8 @@ export default function Home() {
             },
           ]);
         }}
-        className="absolute bottom-8 right-6 h-16 w-16 items-center justify-center rounded-full border border-blue-300 bg-white"
+        style={{ bottom: insets.bottom + 32, right: insets.right + 24 }}
+        className="absolute h-16 w-16 items-center justify-center rounded-full border border-blue-300 bg-white"
       >
         <Text className="text-4xl font-light text-blue-600">+</Text>
       </Pressable>
