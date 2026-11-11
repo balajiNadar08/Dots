@@ -9,15 +9,18 @@ import Animated, {
 } from "react-native-reanimated";
 
 import CanvasBackground from "./CanvasBackground";
+import type { BackgroundId } from "../types/canvas";
 
 interface InfiniteCanvasProps {
   children: ReactNode;
   background: ImageSourcePropType;
+  backgroundId: BackgroundId;
 }
 
 export default function InfiniteCanvas({
   children,
   background,
+  backgroundId,
 }: InfiniteCanvasProps) {
   const translateX = useSharedValue(0);
   const translateY = useSharedValue(0);
@@ -83,7 +86,7 @@ export default function InfiniteCanvas({
 
   return (
     <View className="flex-1 overflow-hidden">
-      <CanvasBackground source={background} />
+      <CanvasBackground source={background} backgroundId={backgroundId} />
       <GestureDetector gesture={gesture}>
         <Animated.View
           className="absolute"
