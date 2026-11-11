@@ -13,23 +13,27 @@ export const BACKGROUNDS: BackgroundOption[] = [
   {
     id: "white",
     label: "White dotted grid",
-    source: require("../assets/images/dot_bg_2.jpg"),
+    source: require("../assets/images/dot_bg_2.webp"),
   },
   {
     id: "pink",
-    label: "Pink dotted grid",
-    source: require("../assets/images/dot_bg_pink.jpg"),
+    label: "Pink heart grid",
+    source: require("../assets/images/dot_bg_pink4.webp"),
+  },
+  {
+    id: "desi",
+    label: "Desi",
+    source: require("../assets/images/desi.webp"),
+  },
+  {
+    id: "yellow",
+    label: "Yellow plus grid",
+    source: require("../assets/images/dot_bg_yellow2.webp"),
   },
   {
     id: "grey",
-    label: "Grey dotted grid",
-    source: require("../assets/images/dot_bg_grey.jpg"),
-  },
-
-  {
-    id: "yellow",
-    label: "Yellow dotted grid",
-    source: require("../assets/images/dot_bg_yellow.jpg"),
+    label: "Grey slash grid",
+    source: require("../assets/images/dot_bg_grey2.webp"),
   },
 ];
 
