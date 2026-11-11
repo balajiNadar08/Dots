@@ -18,7 +18,7 @@ export interface Connection {
   toId: string;
 }
 
-export type BackgroundId = "white" | "pink" | "grey" | "yellow" ;
+export type BackgroundId = "white" | "pink" | "desi" | "grey" | "yellow" ;
 
 /** Live (UI-thread) geometry of a card, shared with the connection layer. */
 export interface ItemLayout {
