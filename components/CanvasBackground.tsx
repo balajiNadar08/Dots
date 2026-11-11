@@ -1,12 +1,18 @@
 import { memo } from "react";
 import { Image, ImageSourcePropType, StyleSheet } from "react-native";
+import type { BackgroundId } from "../types/canvas";
 
-function CanvasBackground({ source }: { source: ImageSourcePropType }) {
+interface CanvasBackgroundProps {
+  source: ImageSourcePropType;
+  backgroundId: BackgroundId;
+}
+
+function CanvasBackground({ source, backgroundId }: CanvasBackgroundProps) {
   return (
     <Image
       source={source}
       style={StyleSheet.absoluteFill}
-      resizeMode="cover" // fills the screen, keeps aspect ratio, never stretches
+      resizeMode={backgroundId === "white" ? "cover" : "repeat"}
       fadeDuration={0}
     />
   );
