@@ -42,7 +42,14 @@ export default function Settings() {
         {BACKGROUNDS.map((bg) => {
           const isActive = bg.id === selected;
           return (
-            <Pressable key={bg.id} onPress={() => choose(bg.id)} className="mb-5">
+            <Pressable key={bg.id} onPress={() => choose(bg.id)} className="mb-8">
+              <Text
+                className={`mb-2 ml-2 text-base ${
+                  isActive ? "font-semibold text-blue-600" : "font-light text-gray-800"
+                }`}
+              >
+                {bg.label}
+              </Text>
               <View
                 className={`h-40 overflow-hidden rounded-2xl bg-white ${
                   isActive ? "border-2 border-blue-500" : "border border-gray-200"
@@ -59,13 +66,6 @@ export default function Settings() {
                   </View>
                 )}
               </View>
-              <Text
-                className={`mt-2 text-base ${
-                  isActive ? "font-semibold text-blue-600" : "text-gray-800"
-                }`}
-              >
-                {bg.label}
-              </Text>
             </Pressable>
           );
         })}
