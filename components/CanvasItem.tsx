@@ -170,11 +170,6 @@ export default function CanvasItem({
       >
         {showControls && (
           <View className="absolute -top-12 right-0 z-50 flex-row items-center gap-2">
-            <GestureDetector gesture={connectGesture}>
-              <View className="h-9 w-9 items-center justify-center rounded-full border border-red-200 bg-white shadow-sm">
-                <Feather name="share-2" size={16} color="#D64545" />
-              </View>
-            </GestureDetector>
 
             <GestureDetector gesture={editGesture}>
               <View className="h-9 w-9 items-center justify-center rounded-full border border-gray-200 bg-white shadow-sm">
@@ -185,6 +180,15 @@ export default function CanvasItem({
             <GestureDetector gesture={deleteGesture}>
               <View className="h-9 w-9 items-center justify-center rounded-full border border-red-200 bg-white shadow-sm">
                 <Feather name="trash-2" size={16} color="#EF4444" />
+              </View>
+            </GestureDetector>
+
+            <GestureDetector gesture={connectGesture}>
+              {/* <View className="h-9 w-9 items-center justify-center rounded-full border border-red-200 bg-white shadow-sm">
+                <Feather name="link-2" size={16} color="#D64545" />
+              </View> */}
+              <View className="px-2 py-0.5 items-center justify-center rounded-full border border-red-600 bg-red-400 shadow-sm">
+                <Text className="font-light text-white text-center">connect</Text>
               </View>
             </GestureDetector>
           </View>
