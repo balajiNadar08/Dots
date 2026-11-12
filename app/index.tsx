@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import InfiniteCanvas from "../components/InfiniteCanvas";
 import {
   View,
@@ -76,24 +76,35 @@ export default function Home() {
   const [isLoaded, setIsLoaded] = useState(false);
 
   // Live card geometry (shared values) used by the connection layer.
-  const layoutRegistry = useRef(new Map<string, ItemLayout>());
-  const [layoutVersion, setLayoutVersion] = useState(0);
+  // Kept as IMMUTABLE state (a new Map on every change) rather than a mutated
+  // ref: the layers must see a new `layouts` identity when cards register,
+  // otherwise memoised/compiled renders keep a stale (empty) result and the
+  // connection lines never show up after a restart.
+  const [layouts, setLayouts] = useState<ReadonlyMap<string, ItemLayout>>(
+    () => new Map(),
+  );
 
   const registerLayout = useCallback((id: string, layout: ItemLayout) => {
-    layoutRegistry.current.set(id, layout);
-    setLayoutVersion((v) => v + 1);
+    setLayouts((prev) => {
+      const next = new Map(prev);
+      next.set(id, layout);
+      return next;
+    });
   }, []);
 
   const unregisterLayout = useCallback((id: string) => {
-    if (layoutRegistry.current.delete(id)) {
-      setLayoutVersion((v) => v + 1);
-    }
+    setLayouts((prev) => {
+      if (!prev.has(id)) return prev;
+      const next = new Map(prev);
+      next.delete(id);
+      return next;
+    });
   }, []);
 
   useEffect(() => {
     const timer = setTimeout(() => {
       setShowWelcome(false);
-    }, 3000);
+    }, 2000);
 
     return () => clearTimeout(timer);
   }, []);
@@ -462,11 +473,7 @@ export default function Home() {
             className="relative bg-transparent"
           >
             {/* 1. Connection lines: behind the cards */}
-            <ConnectionLinesLayer
-              connections={connections}
-              layouts={layoutRegistry.current}
-              version={layoutVersion}
-            />
+            <ConnectionLinesLayer connections={connections} layouts={layouts} />
 
             {/* 2. Cards */}
             {(Array.isArray(canvasItems) ? canvasItems : []).map((item) => (
@@ -491,8 +498,7 @@ export default function Home() {
             {/* 3. Remove badges for the selected card's connections */}
             <ConnectionBadgesLayer
               connections={connections}
-              layouts={layoutRegistry.current}
-              version={layoutVersion}
+              layouts={layouts}
               selectedItemId={isConnecting ? null : selectedItemId}
               onRemove={handleRemoveConnection}
             />
