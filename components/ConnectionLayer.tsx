@@ -55,9 +55,13 @@ function ConnectionLine({ a, b }: { a: ItemLayout; b: ItemLayout }) {
 
 interface LayerProps {
   connections: Connection[];
-  layouts: Map<string, ItemLayout>;
-  /** bumped whenever a card registers/unregisters, so the layer re-evaluates */
-  version: number;
+  /**
+   * Live card geometry by item id. This MUST be an immutable snapshot: a new
+   * Map instance whenever a card registers/unregisters. (Mutating one Map in
+   * place made the React Compiler reuse a stale, empty render result after a
+   * restart, so lines never appeared.)
+   */
+  layouts: ReadonlyMap<string, ItemLayout>;
 }
 
 function ConnectionLines({ connections, layouts }: LayerProps) {
