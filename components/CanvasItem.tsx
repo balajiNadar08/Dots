@@ -79,7 +79,6 @@ export default function CanvasItem({
       height: itemHeight,
     });
     return () => unregisterLayout(id);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   const panGesture = Gesture.Pan()
