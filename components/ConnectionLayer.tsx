@@ -10,12 +10,7 @@ const LINE_COLOR = "#D64545";
 const LINE_THICKNESS = 2.5;
 const BADGE_SIZE = 28;
 
-/* ------------------------------ Lines ------------------------------ */
-
 function ConnectionLine({ a, b }: { a: ItemLayout; b: ItemLayout }) {
-  // A 1px-wide bar that is moved, rotated and stretched between the two card
-  // centres. Runs on the UI thread every frame a card moves/resizes (no React
-  // re-render) and, unlike a full-canvas <Svg>, needs no large native surface.
   const style = useAnimatedStyle(() => {
     const x1 = a.x.value + a.width.value / 2;
     const y1 = a.y.value + a.height.value / 2;
@@ -55,12 +50,6 @@ function ConnectionLine({ a, b }: { a: ItemLayout; b: ItemLayout }) {
 
 interface LayerProps {
   connections: Connection[];
-  /**
-   * Live card geometry by item id. This MUST be an immutable snapshot: a new
-   * Map instance whenever a card registers/unregisters. (Mutating one Map in
-   * place made the React Compiler reuse a stale, empty render result after a
-   * restart, so lines never appeared.)
-   */
   layouts: ReadonlyMap<string, ItemLayout>;
 }
 
@@ -139,7 +128,6 @@ function ConnectionBadge({
 }
 
 interface BadgesProps extends LayerProps {
-  /** only connections touching this item show a remove badge */
   selectedItemId: string | null;
   onRemove: (id: string) => void;
 }
