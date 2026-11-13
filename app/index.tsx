@@ -1,33 +1,33 @@
 import { useCallback, useEffect, useState } from "react";
-import InfiniteCanvas from "../components/InfiniteCanvas";
 import {
-  View,
-  Text,
-  Pressable,
-  TextInput,
   Alert,
-  Modal,
-  KeyboardAvoidingView,
-  Platform,
   Image,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  Pressable,
+  Text,
+  TextInput,
+  View,
 } from "react-native";
+import InfiniteCanvas from "../components/InfiniteCanvas";
 
+import { Feather } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { File, Paths } from "expo-file-system";
 import * as ImagePicker from "expo-image-picker";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useFocusEffect, useRouter } from "expo-router";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import {
   SafeAreaView,
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
-import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import { scheduleOnRN } from "react-native-worklets";
-import { useRouter, useFocusEffect } from "expo-router";
-import { Feather } from "@expo/vector-icons";
 
 import CanvasItem from "../components/CanvasItem";
 import {
-  ConnectionLinesLayer,
   ConnectionBadgesLayer,
+  ConnectionLinesLayer,
 } from "../components/ConnectionLayer";
 import {
   DEFAULT_BACKGROUND_ID,
@@ -50,9 +50,6 @@ const STORAGE_KEY = "@dots_canvas_items";
 
 export default function Home() {
   const router = useRouter();
-
-  // Absolutely positioned children ignore SafeAreaView's padding, so the
-  // floating buttons add the real device insets themselves.
   const insets = useSafeAreaInsets();
 
   const [showWelcome, setShowWelcome] = useState(true);
@@ -75,11 +72,6 @@ export default function Home() {
 
   const [isLoaded, setIsLoaded] = useState(false);
 
-  // Live card geometry (shared values) used by the connection layer.
-  // Kept as IMMUTABLE state (a new Map on every change) rather than a mutated
-  // ref: the layers must see a new `layouts` identity when cards register,
-  // otherwise memoised/compiled renders keep a stale (empty) result and the
-  // connection lines never show up after a restart.
   const [layouts, setLayouts] = useState<ReadonlyMap<string, ItemLayout>>(
     () => new Map(),
   );
@@ -104,7 +96,7 @@ export default function Home() {
   useEffect(() => {
     const timer = setTimeout(() => {
       setShowWelcome(false);
-    }, 2000);
+    }, 3000);
 
     return () => clearTimeout(timer);
   }, []);
@@ -113,8 +105,6 @@ export default function Home() {
     loadCanvas();
   }, []);
 
-  // Re-read the background whenever we come back from Settings.
-  // The canvas itself stays mounted, so nothing resets.
   useFocusEffect(
     useCallback(() => {
       let active = true;
@@ -149,7 +139,6 @@ export default function Home() {
         if (Array.isArray(parsedItems)) {
           setCanvasItems(parsedItems);
 
-          // Older (V2) installs have no connections key -> [].
           const validIds = new Set<string>(
             parsedItems.map((item: CanvasItemData) => item.id),
           );
@@ -179,8 +168,6 @@ export default function Home() {
   const handleSelectItem = (id: string) => {
     setSelectedItemId(id);
   };
-
-  /* ---------------------------- Connections --------------------------- */
 
   const handleConnectStart = (id: string) => {
     setSelectedItemId(id);
@@ -232,8 +219,6 @@ export default function Home() {
     scheduleOnRN(handleCanvasTap);
   });
 
-  /* ------------------------------- Items ------------------------------ */
-
   const handleDeleteItem = (id: string) => {
     Alert.alert(
       "Delete Item",
@@ -260,7 +245,6 @@ export default function Home() {
 
               setCanvasItems((items) => items.filter((item) => item.id !== id));
 
-              // Remove every connection attached to the deleted image.
               setConnections((prev) =>
                 prev.filter((c) => c.fromId !== id && c.toId !== id),
               );
@@ -435,18 +419,24 @@ export default function Home() {
 
   if (showWelcome) {
     return (
-      <SafeAreaView className="flex-1 bg-[#F7F7F5]">
+      <SafeAreaView className="flex-1 bg-black">
         <View className="flex-1 items-center justify-center">
           <Image
             source={require("../assets/images/icon.png")}
-            className="h-64 w-64"
-            resizeMode="contain"
+            style={{
+              width: 256,
+              height: 256,
+              resizeMode: "contain",
+              borderRadius: 12,
+              borderWidth: 2,
+              borderColor: "white",
+            }}
           />
           <View className="mt-6 items-center">
-            <Text className="text-xl text-black">
+            <Text className="text-xl text-white">
               Add images, write notes &{" "}
             </Text>
-            <Text className="text-xl text-black">
+            <Text className="text-xl text-white">
               {" "}
               Keep connecting the Dots...
             </Text>
@@ -472,10 +462,8 @@ export default function Home() {
             }}
             className="relative bg-transparent"
           >
-            {/* 1. Connection lines: behind the cards */}
             <ConnectionLinesLayer connections={connections} layouts={layouts} />
 
-            {/* 2. Cards */}
             {(Array.isArray(canvasItems) ? canvasItems : []).map((item) => (
               <CanvasItem
                 key={item.id}
@@ -495,7 +483,6 @@ export default function Home() {
               />
             ))}
 
-            {/* 3. Remove badges for the selected card's connections */}
             <ConnectionBadgesLayer
               connections={connections}
               layouts={layouts}
