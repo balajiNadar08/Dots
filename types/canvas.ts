@@ -20,7 +20,6 @@ export interface Connection {
 
 export type BackgroundId = "white" | "pink" | "desi" | "grey" | "yellow" ;
 
-/** Live (UI-thread) geometry of a card, shared with the connection layer. */
 export interface ItemLayout {
   x: SharedValue<number>;
   y: SharedValue<number>;
